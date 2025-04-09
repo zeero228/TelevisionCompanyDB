@@ -1,0 +1,287 @@
+-- Курсор для перебору таблиць
+DECLARE table_cursor CURSOR FOR
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+
+-- Оголошення змінних
+DECLARE @table_name VARCHAR(255)
+DECLARE @sql NVARCHAR(MAX)
+
+-- Відкриття курсору
+OPEN table_cursor
+
+-- Читання першого імені таблиці
+FETCH NEXT FROM table_cursor INTO @table_name
+
+-- Цикл по таблицям
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- Створення SQL-запиту для додавання стовпців
+    SET @sql = N'
+        ALTER TABLE ' + @table_name + N'
+        ADD
+            UCR VARCHAR(255),
+            DCR DATETIME,
+            ULC VARCHAR(255),
+            DLC DATETIME;
+        PRINT N''Додано стовпці до таблиці: ' + @table_name + N''';'
+
+    -- Виконання SQL-запиту
+    EXEC sp_executesql @sql
+
+    -- Читання наступного імені таблиці
+    FETCH NEXT FROM table_cursor INTO @table_name
+END
+
+-- Закриття та звільнення курсору
+CLOSE table_cursor
+DEALLOCATE table_cursor
+GO
+
+-- Перевірка результату
+SELECT TABLE_NAME, COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE COLUMN_NAME IN ('UCR', 'DCR', 'ULC', 'DLC')
+ORDER BY TABLE_NAME, COLUMN_NAME;
+GO
+
+CREATE TRIGGER TR_Subscribers_Insert
+ON Subscribers
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Subscribers
+    SET
+        UCR = SYSTEM_USER, -- або 
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE SubscriberID IN (SELECT SubscriberID FROM inserted);
+END;
+GO
+-- Створення тригера AFTER UPDATE для таблиці Subscribers
+CREATE TRIGGER TR_Subscribers_Update
+ON Subscribers
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Subscribers
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE SubscriberID IN (SELECT SubscriberID FROM inserted);
+END;
+GO
+
+DROP TRIGGER TR_Subscribers_Update;
+GO
+-- Створення тригера AFTER INSERT для таблиці Services
+CREATE TRIGGER TR_Services_Insert
+ON Services
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Services
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE ServiceID IN (SELECT ServiceID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці Services
+CREATE TRIGGER TR_Services_Update
+ON Services
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Services
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE ServiceID IN (SELECT ServiceID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці Orders
+CREATE TRIGGER TR_Orders_Insert
+ON Orders
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Orders
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE OrderID IN (SELECT OrderID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці Orders
+CREATE TRIGGER TR_Orders_Update
+ON Orders
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Orders
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE OrderID IN (SELECT OrderID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці Payments
+CREATE TRIGGER TR_Payments_Insert
+ON Payments
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Payments
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE PaymentID IN (SELECT PaymentID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці Payments
+CREATE TRIGGER TR_Payments_Update
+ON Payments
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Payments
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE PaymentID IN (SELECT PaymentID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці Movies
+CREATE TRIGGER TR_Movies_Insert
+ON Movies
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Movies
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE MovieID IN (SELECT MovieID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці Movies
+CREATE TRIGGER TR_Movies_Update
+ON Movies
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Movies
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE MovieID IN (SELECT MovieID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці MovieOrders
+CREATE TRIGGER TR_MovieOrders_Insert
+ON MovieOrders
+AFTER INSERT
+AS
+BEGIN
+    UPDATE MovieOrders
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE MovieOrderID IN (SELECT MovieOrderID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці MovieOrders
+CREATE TRIGGER TR_MovieOrders_Update
+ON MovieOrders
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE MovieOrders
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE MovieOrderID IN (SELECT MovieOrderID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці TariffPlans
+CREATE TRIGGER TR_TariffPlans_Insert
+ON TariffPlans
+AFTER INSERT
+AS
+BEGIN
+    UPDATE TariffPlans
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE TariffPlanID IN (SELECT TariffPlanID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці TariffPlans
+CREATE TRIGGER TR_TariffPlans_Update
+ON TariffPlans
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE TariffPlans
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE TariffPlanID IN (SELECT TariffPlanID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER INSERT для таблиці Reports
+CREATE TRIGGER TR_Reports_Insert
+ON Reports
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Reports
+    SET
+        UCR = SYSTEM_USER,
+        DCR = GETDATE(),
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE ReportID IN (SELECT ReportID FROM inserted);
+END;
+GO
+
+-- Створення тригера AFTER UPDATE для таблиці Reports
+CREATE TRIGGER TR_Reports_Update
+ON Reports
+AFTER UPDATE
+AS
+BEGIN
+    UPDATE Reports
+    SET
+        ULC = SYSTEM_USER,
+        DLC = GETDATE()
+    WHERE ReportID IN (SELECT ReportID FROM inserted);
+END;
+GO

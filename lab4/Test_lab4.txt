@@ -1,0 +1,66 @@
+
+-- Вставляємо спробу замовлення
+BEGIN TRY
+    INSERT INTO MovieOrders (SubscriberID, MovieID, OrderDate, Price)
+    VALUES (3, 5, GETDATE(), 50);
+END TRY
+BEGIN CATCH
+    -- Перевіряємо, чи виникла очікувана помилка
+    IF ERROR_MESSAGE() LIKE 'Замовлення кінофільмів з позначкою «для дорослих» абонентами віком до 18 років заборонено.'
+        PRINT 'Тест 3: Замовлення фільму «для дорослих» абонентом до 18 років заблоковано. - Успішно';
+    ELSE
+        THROW; -- Якщо помилка інша, підіймаємо виключення
+END CATCH
+
+
+
+-- Вставляємо замовлення
+BEGIN TRY
+    INSERT INTO MovieOrders (SubscriberID, MovieID, OrderDate, Price)
+    VALUES (2, 5, GETDATE(), 50);
+
+    PRINT 'Тест 4: Замовлення фільму «для дорослих» абонентом старше 18 років дозволено. - Успішно';
+END TRY
+BEGIN CATCH
+    -- Якщо виникла помилка, показуємо її
+    PRINT   ERROR_MESSAGE();
+END CATCH
+GO
+
+-- Створення платежу для абонента за останній місяць
+INSERT INTO Payments (SubscriberID, PaymentDate, Amount, PaymentStatus)
+VALUES (2, GETDATE(), 100, 'success');
+
+BEGIN TRY
+    INSERT INTO Orders (SubscriberID, ServiceID, OrderDate, TotalAmount)
+    VALUES (2, 1, GETDATE(), 100);
+
+    PRINT 'Тест 2:successfully';
+END TRY
+BEGIN CATCH
+    -- Якщо виникла помилка, показуємо її
+    PRINT  ERROR_MESSAGE();
+END CATCH
+
+-- Вставляємо замовлення
+BEGIN TRY
+    INSERT INTO Orders (SubscriberID, ServiceID, OrderDate, TotalAmount)
+    VALUES (3, 1, GETDATE(), 100);
+
+    PRINT 'Тест 2:successfully';
+END TRY
+BEGIN CATCH
+    -- Якщо виникла помилка, показуємо її
+    PRINT  ERROR_MESSAGE();
+END CATCH
+
+GO
+
+--Перевірка тригерів оновлення 
+UPDATE Subscribers
+SET IsActive = 1
+WHERE SubscriberID = 5;
+
+--Перевірка тригерів створення
+INSERT INTO Movies (Title, Category, ReleaseDate) VALUES
+('Test Movie New', 'New', GETDATE());

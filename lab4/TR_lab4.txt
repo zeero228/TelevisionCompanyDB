@@ -1,0 +1,57 @@
+
+CREATE TRIGGER TR_Orders_Insert_CheckDebt
+ON Orders
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN Subscribers s ON i.SubscriberID = s.SubscriberID
+        LEFT JOIN Payments p ON s.SubscriberID = p.SubscriberID AND p.PaymentDate >= DATEADD(month, -3, GETDATE())
+        WHERE NOT EXISTS (SELECT 1 FROM Payments WHERE SubscriberID = s.SubscriberID AND PaymentDate >= DATEADD(month, -3, GETDATE()))
+              AND s.IsActive = 0
+    )
+    BEGIN
+        RAISERROR('Абонент не оплатив замовлені послуги за останні три місяці. Замовлення заборонено.', 16, 1)
+        ROLLBACK TRANSACTION
+    END
+    ELSE
+    BEGIN
+        -- Якщо обмеження не порушено, вставляємо дані
+        INSERT INTO Orders (SubscriberID, ServiceID, OrderDate, TotalAmount)
+        SELECT SubscriberID, ServiceID, OrderDate, TotalAmount
+        FROM inserted;
+    END
+END;
+GO
+
+DROP TRIGGER TR_MovieOrders_Insert_CheckAge;
+GO
+
+
+CREATE TRIGGER TR_MovieOrders_Insert_CheckAge
+ON MovieOrders
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1
+			FROM inserted i
+			JOIN Subscribers s ON i.SubscriberID = s.SubscriberID
+			JOIN Movies m ON i.MovieID = m.MovieID
+			WHERE s.age < 18 AND m.Category = 'Adult'
+    )
+    BEGIN
+        RAISERROR('Замовлення кінофільмів з позначкою «для дорослих» абонентами віком до 18 років заборонено.', 16, 1)
+        ROLLBACK TRANSACTION
+    END
+      ELSE
+    BEGIN
+        -- Якщо обмеження не порушено, вставляємо дані
+        INSERT INTO MovieOrders (SubscriberID, MovieID, OrderDate, Price)
+        SELECT SubscriberID, MovieID, OrderDate, Price
+        FROM inserted;
+    END
+END;
+GO
