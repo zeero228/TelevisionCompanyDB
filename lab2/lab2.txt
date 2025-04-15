@@ -1,0 +1,164 @@
+-- Вивести список активних абонентів з ім'ям, що починається на 'I' або 'M' та боргом менше 100, впорядкувати за FullName
+SELECT FullName, ContactInfo, Debt
+FROM Subscribers
+WHERE (FullName LIKE 'I%' OR FullName LIKE 'M%')
+  AND IsActive = 1
+  AND Debt < 100
+ORDER BY FullName;
+
+-- Особливість: SELECT з однієї таблиці, WHERE з AND/OR, LIKE, ORDER BY
+
+
+
+-- Вивести ID абонента, повне ім'я та борг, збільшений на 10% (якщо абонент боржник, і тільки таких)
+SELECT SubscriberID, FullName,
+       Debt, --Початковий борг
+       ROUND(CAST(Debt * 1.10 AS DECIMAL(10,4)), 2) AS IncreasedDebt --Борг зі збільшенням
+FROM Subscribers
+WHERE Debt > 0;
+
+-- Особливість: SELECT з обчислювальним полем (виразом) в колонці результату, використання CASE.
+
+-- Вивести назву послуги, повне ім'я абонента, дату замовлення та суму для замовлень, зроблених в 2023 році або з сумою більше 300, впорядкувати за FullName
+SELECT s.ServiceName, sub.FullName, o.OrderDate, o.TotalAmount
+FROM Orders o
+JOIN Subscribers sub ON o.SubscriberID = sub.SubscriberID
+JOIN Services s ON o.ServiceID = s.ServiceID
+WHERE (YEAR(o.OrderDate) = 2023 OR o.TotalAmount > 300) AND sub.IsActive = 1
+ORDER BY sub.FullName;
+
+-- Особливість: SELECT з кількох таблиць (JOIN), WHERE з AND/OR, ORDER BY
+
+-- Вивести повне ім'я абонента та кількість платежів, навіть якщо у абонента не було платежів.
+SELECT s.FullName, COUNT(p.PaymentID) AS NumberOfPayments
+FROM Subscribers s
+LEFT OUTER JOIN Payments p ON s.SubscriberID = p.SubscriberID
+GROUP BY s.FullName
+ORDER BY s.FullName;
+
+-- Особливість: SELECT з кількох таблиць (LEFT OUTER JOIN), використання агрегатної функції та GROUP BY
+
+
+
+-- a) LIKE: Знайти абонентів, у яких ContactInfo містить '@example.com'
+SELECT FullName FROM Subscribers WHERE ContactInfo LIKE '%@example.com%';
+
+-- b) BETWEEN: Знайти замовлення з сумою між 50 та 200
+SELECT OrderID FROM Orders WHERE TotalAmount BETWEEN 50 AND 200;
+
+-- c) IN: Знайти абонентів з ID 1, 2 або 3
+SELECT FullName FROM Subscribers WHERE SubscriberID IN (1, 2, 3);
+
+-- d) EXISTS: Знайти абонентів, у яких є хоча б одне замовлення
+SELECT FullName FROM Subscribers s WHERE EXISTS (SELECT 1 FROM Orders o WHERE s.SubscriberID = o.SubscriberID);
+
+-- e) ANY (з підзапитом): Знайти абонентів з TotalAmount, який перевищує хоча б одну TotalAmount з Orders
+SELECT FullName FROM Subscribers WHERE SubscriberID = ANY (SELECT SubscriberID FROM Orders WHERE TotalAmount > 150);
+
+-- f) ALL (з підзапитом): Знайти абонентів з TotalAmount, який перевищує всі TotalAmount з Orders
+SELECT FullName FROM Subscribers WHERE SubscriberID = ALL (SELECT SubscriberID FROM Orders WHERE TotalAmount > 0); 
+
+-- Особливість: SELECT з різними операторами (LIKE, BETWEEN, IN, EXISTS, ANY, ALL)
+
+
+-- Підрахувати загальну суму замовлень для кожного абонента
+SELECT s.FullName, SUM(o.TotalAmount) AS TotalOrderAmount
+FROM Subscribers s
+JOIN Orders o ON s.SubscriberID = o.SubscriberID
+GROUP BY s.FullName
+ORDER BY TotalOrderAmount DESC;
+
+-- Особливість: SELECT з агрегатною функцією (SUM), GROUP BY, ORDER BY
+
+
+-- Вивести абонентів, які мають замовлення з максимальною сумою
+SELECT FullName
+FROM Subscribers
+WHERE SubscriberID IN (SELECT SubscriberID FROM Orders WHERE TotalAmount = (SELECT MAX(TotalAmount) FROM Orders));
+
+-- Особливість: SELECT з підзапитом у WHERE (IN, MAX)
+
+-- Вивести суму замовлень за кожним абонентом по місяцях
+SELECT FullName,
+       ISNULL([1], 0) AS Jan, ISNULL([2], 0) AS Feb, ISNULL([3], 0) AS Mar,
+       ISNULL([4], 0) AS Apr, ISNULL([5], 0) AS May, ISNULL([6], 0) AS Jun,
+       ISNULL([7], 0) AS Jul, ISNULL([8], 0) AS Aug, ISNULL([9], 0) AS Sep,
+       ISNULL([10], 0) AS Oct, ISNULL([11], 0) AS Nov, ISNULL([12], 0) AS Dec
+FROM (
+    SELECT s.FullName, MONTH(o.OrderDate) AS Month, o.TotalAmount
+    FROM Subscribers s
+    JOIN Orders o ON s.SubscriberID = o.SubscriberID
+) AS SourceTable
+PIVOT (
+    SUM(TotalAmount)
+    FOR Month IN ([1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12])
+) AS PivotTable;
+
+-- Особливість: Реалізація CrossTab через PIVOT, використання ISNULL для заміни NULL на 0.
+
+-- Змінити ContactInfo для абонента з SubscriberID = 1
+UPDATE Subscribers SET ContactInfo = 'new.email@example.com' WHERE SubscriberID = 1;
+
+-- Особливість: UPDATE на базі однієї таблиці з умовою WHERE.
+
+-- Збільшити борг для всіх активних абонентів, які мають замовлення на суму більше 200
+UPDATE Subscribers
+SET Debt = Debt + 50
+WHERE SubscriberID IN (SELECT SubscriberID FROM Orders WHERE TotalAmount > 200) AND IsActive = 1;
+
+-- Особливість: UPDATE на базі однієї таблиці з підзапитом у WHERE для вибору записів.
+
+-- Додати нового абонента
+INSERT INTO Subscribers (FullName, ContactInfo, IsActive, Debt)
+VALUES ('New Subscriber', 'new.subscriber@example.com', 1, 0);
+
+-- Особливість: INSERT з явно вказаними значеннями.
+
+-- Створити копію таблиці Subscribers (структура) і заповнити її даними з вихідної таблиці (архівування абонентів з IsActive = 0)
+INSERT INTO ArchivedSubscribers (SubscriberID, FullName, ContactInfo, IsActive, Debt)
+SELECT SubscriberID, FullName, ContactInfo, IsActive, Debt
+FROM Subscribers WHERE IsActive = 0;
+
+-- Особливість: INSERT з SELECT для копіювання даних з іншої таблиці. (Перед цим потрібно створити таблицю ArchivedSubscribers з такою ж структурою, як Subscribers).
+
+-- Очистити таблицю Orders (Видалить всі замовлення, але залишить структуру таблиці)
+DELETE FROM Orders;
+
+-- Особливість: DELETE без умов WHERE (видалення всіх записів).
+
+
+-- Видалити неактивних абонентів з Debt > 100
+DELETE FROM Subscribers WHERE IsActive = 0 AND Debt > 100;
+
+-- Особливість: DELETE з умовою WHERE (видалення певних записів).
+
+--СКЛАДНІ ЗАПИТИ
+
+-- 1. Вивести Top-5 найактивніших абонентів (за кількістю замовлень) за останній рік, з вказанням загальної суми їх заборгованості після вирахування успішних платежів:
+SELECT TOP 5
+    s.FullName,
+    COUNT(o.OrderID) AS TotalOrdersLastMonth,
+    ISNULL(s.Debt - (SELECT SUM(p.Amount) FROM Payments p WHERE p.SubscriberID = s.SubscriberID AND p.PaymentStatus = 'success'), s.Debt) AS RemainingDebt
+FROM Subscribers s
+JOIN Orders o ON s.SubscriberID = o.SubscriberID
+WHERE o.OrderDate >= DATEADD(year, -1, GETDATE())
+GROUP BY s.SubscriberID, s.FullName, s.Debt
+ORDER BY TotalOrdersLastMonth DESC;
+
+-- Особливості: SELECT з кількох таблиць, TOP, агрегатні функції, підзапит у SELECT (для розрахунку боргу), WHERE з умовою на дату, ORDER BY.
+
+-- 2. Оновити борг абонентам на основі їхніх замовлень за останній тиждень (лише для тих, хто має Extended Package) та вставити записи про платежі (імітація автоматичного списання коштів). Якщо після оновлення борг абонента перевищує 500 - встановити IsActive = 0:
+
+-- Крок 1: Оновити борг
+UPDATE Subscribers
+SET Debt = Debt + (SELECT SUM(o.TotalAmount) FROM Orders o JOIN Services ser ON o.ServiceID = ser.ServiceID WHERE o.SubscriberID = Subscribers.SubscriberID AND o.OrderDate >= DATEADD(year, -1, GETDATE()) AND ser.ServiceType = 'extended')
+WHERE EXISTS (SELECT 1 FROM Orders o JOIN Services ser ON o.ServiceID = ser.ServiceID WHERE o.SubscriberID = Subscribers.SubscriberID AND o.OrderDate >= DATEADD(year, -1, GETDATE()) AND ser.ServiceType = 'extended');
+
+-- Крок 2: Вставити записи про платежі (імітація)
+INSERT INTO Payments (SubscriberID, PaymentDate, Amount, PaymentStatus)
+SELECT SubscriberID, GETDATE(), Debt, 'success' FROM Subscribers WHERE Debt > 0;
+
+-- Крок 3: Деактивувати абонентів з великим боргом
+UPDATE Subscribers SET IsActive = 0 WHERE Debt > 500;
+
+-- Особливості: UPDATE з підзапитами, INSERT з SELECT, поєднання кількох DML-операцій в одному сценарії.
